@@ -1,48 +1,112 @@
-const userDao = require('../../dao/userDao/userDao');
-const bcrypt = require("bcryptjs");
-const jwt = require("jsonwebtoken");
+const userDao =require("../../dao/userDao/userDao");
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
+const fs = require("fs");
 
-class UserService {
-  async getAllUsers() {
-    return await userDao.findAllUsers();
+
+const createUser = async (userData, documents) => {
+  console.log(userData);
+  console.log(documents);
+  let saveResult = await saveDocumentsToServer(documents);
+  console.log(saveResult);
+  const hashedPassword = await bcrypt.hash(userData.password, 10);
+  return await userDao.createUser({
+    ...userData,
+    password: hashedPassword,
+  });
+};
+
+async function saveDocumentsToServer(documents) {
+  let counter = 0;
+  for (const file of documents) {
+    console.log(file);
+    await saveFile(file.base64String, file.name, file.path);
+    counter++;
+    console.log("File number " + counter + " saved");
   }
+  if (counter == documents.length) return true;
+}
 
-  async createUser(user) {
-    
-    return await userDao.createUser(user);
-  }
-
-  async updateUser(user) {
-    console.log(user)
-    return await userDao.updateUser(user);
-  }
-
-
-  async loginUser(email, password) {
-    const user = await userDao.findByUseremail(email);
-    if (!user) {
-      throw new Error('User not found');
+async function saveFile(base64String, fileName, file_path) {
+  //const base64Data = await base64String.replace(/^data:image\/\w+;base64,/, '');
+  const binaryData = Buffer.from(base64String, "base64");
+  const filePath = file_path + fileName;
+  fs.writeFile(filePath, binaryData, "binary", (err) => {
+    if (err) {
+      console.error("Error saving the file:", err);
+    } else {
+      console.log("File saved successfully!");
     }
-    const isPasswordValid = await bcrypt.compare(password, user.password);
-    if (!isPasswordValid) {
-      throw new Error('Invalid password');
-    }
-    const accessToken = jwt.sign({ login: user.email }, process.env.SECRET_KEY);
-    await userDao.updateApiToken(user.id, accessToken);
-    return { ...user, api_token: accessToken };
-  }
-
-  async getUserByToken(api_token) {
-    console.log(`Fetching user by token service: ${api_token}`);
-    return await userDao.findUserByToken(api_token);
-  }
-
-  async logoutUser (id) {
-    return await userDao.updateApiToken(id, "");
-  
-  }
+  });
 }
 
 
+// login service acccount
+const loginUser = async (login, password) => {
+  const user = await userDao.findUserByLogin(login);
 
-module.exports = new UserService();
+  if (!user) {
+    throw new Error("user not found");
+  }
+
+  if (await bcrypt.compare(password, user.password)) {
+    const accessToken = jwt.sign({ login: user.login }, "yourSecretKey");
+    console.log(typeof accessToken);
+    await userDao.updateJwtToken(user._id, String(accessToken));
+    let updatedUser = await userDao.getUserById(user._id);
+    return updatedUser;
+  } else {
+    throw new Error("Incorrect password");
+  }
+};
+
+
+
+
+//forgot password
+const updatePassword = async (id, password) => {
+  console.log(password);
+  const hashedPassword = await bcrypt.hash(password.password, 10);
+  return await userDao.updatePassword(id, hashedPassword);
+};
+
+const getUserById = async (id) => {
+    return await userDao.getUserById(id);
+  };
+const getUsers = async () => {
+    return await userDao.getAllUsers();
+  };
+  
+  const deleteUser = async (id) => {
+    return await userDao.deleteUser(id);
+  };
+  
+  const getUserByEmail = async (email) => {
+    return await userDao.getUserByEmail(email);
+  };
+
+  const updateUser = async (id, updateData) => {
+    return await userDao.updateUser(id, updateData);
+  };
+// get User by token
+const getUserByToken = async (token) => {
+  return await userDao.findUserByToken(token);
+};
+//logout
+const logout = async (id) => {
+  return await userDao.logout(id);
+};
+
+ 
+
+  module.exports = {createUser
+    ,getUserByToken,
+     logout,
+      getUserByEmail,
+      getUsers,
+      deleteUser,
+      getUserById, 
+      updateUser, 
+      loginUser, 
+      updatePassword
+    }

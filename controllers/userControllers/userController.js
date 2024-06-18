@@ -1,8 +1,9 @@
-const userService = require('../../services/userServices/userService');
+const userService = require("../../services/userServices/userService");
+const globalFunctions = require("../../utils/globalFunctions");
 
 exports.getAllUsers = async (req, res) => {
   try {
-    const users = await userService.getAllUsers();
+    const users = await userService.getUsers();
     res.json(users);
   } catch (error) {
     res.status(500).send(error.message);
@@ -11,9 +12,43 @@ exports.getAllUsers = async (req, res) => {
 
 exports.createUser = async (req, res) => {
   try {
-    const {  name, email, lockout_time,role, departement_id, password, app_name, role_id  } = req.body;
-    
-    let user = await userService.createUser({  name, email, lockout_time,role, departement_id, password, app_name, role_id});
+    const {
+      name,
+      email,
+      login,
+      role_id,
+      departement_id,
+      password,
+      app_name,
+      photoBase64String,
+      photoExtension,
+      api_token,
+      status
+    } = req.body;
+    const photoPath = "files/userFiles";
+    let photo = globalFunctions.generateUniqueFilename(
+      photoExtension,
+      "photoUser"
+    );
+    let document = {
+      base64String: photoBase64String,
+      extension: photoExtension,
+      name: photo,
+      path: photoPath,
+    };
+    let user = await userService.createUser({
+      name,
+      email,
+      login,
+      role_id,
+      departement_id,
+      password,
+      api_token,
+      photo,
+      app_name,
+      api_token,
+      status
+    }, [document]);
     res.json(user);
   } catch (error) {
     res.status(500).send(error.message);
@@ -22,9 +57,10 @@ exports.createUser = async (req, res) => {
 
 exports.updateUser = async (req, res) => {
   try {
-    const { id, name, email ,role, departement_id, app_name} = req.body;
-    
-    let user = await userService.updateUser( {id, name, email, role, departement_id, app_name} );
+    const userId = req.params.id;
+    const { name, email, login, role, departement_id, password, api_token, photo, app_name, status} = req.body;
+
+    let user = await userService.updateUser( userId, { name, email, login, role, departement_id, password, api_token, photo, app_name, status} );
     res.json(user);
   } catch (error) {
     res.status(500).send(error.message);
@@ -33,8 +69,8 @@ exports.updateUser = async (req, res) => {
 
 exports.loginUser = async (req, res) => {
   try {
-    const { email, password } = req.body;
-    const user = await userService.loginUser(email, password);
+    const { login, password } = req.body;
+    const user = await userService.loginUser(login, password);
     res.json({ message: 'Login successful', user });
   } catch (error) {
     res.status(401).send(error.message);
@@ -60,14 +96,13 @@ exports.getUserByToken = async (req, res) => {
 
 exports.logoutUser = async (req, res) => {
   try {
-    
+
     let id = req.params.id;
 
-  await userService.logoutUser(id);
+  await userService.logout(id);
 
   res.sendStatus(200);
   } catch (error) {
     res.status(401).send(error.message);
   }
 };
-

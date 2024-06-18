@@ -1,51 +1,77 @@
+const User = require('../../model/userModel/userModel');
 
-const pool = require('../../config/database');
-const bcrypt = require("bcryptjs");
 
-class UserDAO {
-  async findAllUsers() {
-    const [rows] = await pool.query('SELECT * FROM users');
-    return rows;
+const createUser = async (userData) => {
+    return await User.create(userData);
+};
+
+const findUserByLogin = async (login) => {
+    return await User.findOne({ login });
+};
+
+// find User by token
+const findUserByToken = async (token) => {
+    let api_token = token;
+    return await User.findOne({ api_token });
+  };
+// get all Users
+const getAllUsers = async () => {
+    return await User.find({});
+  };
+  const updateJwtToken = async (id, token) => {
+    return await User.findByIdAndUpdate({ _id:id }, {
+      $set: {
+        api_token: token
+      }
+    });
   }
 
-  async createUser(user) {
-    const { name, email, lockout_time,role, departement_id, password, app_name, role_id} = user;
+const updateUser = async (id, updateData) => {
+    return await User.findByIdAndUpdate(id, updateData, { new: true });
+};
 
-    const hashedPassword = await bcrypt.hash(password, 10);
+const deleteUser = async (id) => {
+    return await User.findByIdAndDelete(id);
+};
 
-    const [result] = await pool.query(
-      'INSERT INTO users (name, email, lockout_time,role, departement_id, password, app_name, role_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-      [name, email, lockout_time,role, departement_id, hashedPassword, app_name, role_id]
-    );
-    return { id: result.insertId, ...user };
-  }
-
-  async findByUseremail(email) {
-    const [rows] = await pool.query('SELECT * FROM users WHERE email = ?', [email]);
-    return rows[0];
-  }
-
-  async findUserByToken(api_token) {
-    console.log(`Finding user by token dao: ${api_token}`);
-    const [rows] = await pool.query('SELECT * FROM users WHERE api_token = ?', [api_token]);
-    console.log(`User found: ${JSON.stringify(rows[0])}`);
-    return rows[0];
-  }
-
-  async updateApiToken(userId, apiToken) {
-    console.log(`Updating user id dao: ${userId} with token: ${apiToken}`);
-    const [result] = await pool.query('UPDATE users SET api_token = ? WHERE id = ?', [apiToken, userId]);
-    return result;
-  }
-
-  async updateUser(user) {
-    console.log(user)
-    await pool.query(`UPDATE users SET name = '${user.name}', email = '${user.email}', role = '${user.role}', departement_id = ${user.departement_id}, app_name = '${user.app_name}' WHERE id = ${user.id}`);
-    const [rows]  = await pool.query(`SELECT * FROM users WHERE id = ${user.id} `);
-    return rows[0];
-  }
+const getUserById = async (id) => {
+    return await User.findById(id);
 }
 
+const getUserByEmail = async (email) => {
+    return await User.findOne({ email });
+}
+const updatePassword = async (id, password) => {
+    console.log('Hashed pwd: '+password);
+    return await User.findByIdAndUpdate({ _id:id }, {
+      $set: {
+        password: password
+      }
+    });
+  }
+  
+    // logout
+    const logout = async (id) => {
+        return await User.findByIdAndUpdate({ _id:id }, {
+          $set: {
+            api_token: ""
+          }
+        });
+      }
+  
 
 
-module.exports = new UserDAO();
+module.exports = {
+    createUser,
+    findUserByToken,
+    getAllUsers,
+    updateUser,
+    deleteUser,
+    getUserById,
+    getUserByEmail,
+    findUserByLogin,
+    updatePassword,
+    updateJwtToken,
+    logout
+
+};

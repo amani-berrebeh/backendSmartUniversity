@@ -51,7 +51,7 @@ const loginUser = async (login, password) => {
 
   if (await bcrypt.compare(password, user.password)) {
     const accessToken = jwt.sign({ login: user.login }, "yourSecretKey");
-    console.log(typeof accessToken);
+    // console.log(typeof accessToken);
     await userDao.updateJwtToken(user._id, String(accessToken));
     let updatedUser = await userDao.getUserById(user._id);
     return updatedUser;
@@ -70,9 +70,6 @@ const updatePassword = async (id, password) => {
   return await userDao.updatePassword(id, hashedPassword);
 };
 
-const getUserById = async (id) => {
-    return await userDao.getUserById(id);
-  };
 const getUsers = async () => {
     return await userDao.getAllUsers();
   };
@@ -90,12 +87,21 @@ const getUsers = async () => {
   };
 // get User by token
 const getUserByToken = async (token) => {
+  console.log("Token Service", token)
   return await userDao.findUserByToken(token);
 };
 //logout
 const logout = async (id) => {
   return await userDao.logout(id);
 };
+const getUserById = async (_id) => {
+  try {
+    return await userDao.getUserById(_id);
+  } catch (err) {
+    throw new Error(`Error fetching user by ID: ${err.message}`);
+  }
+};
+
 
  
 
@@ -109,4 +115,5 @@ const logout = async (id) => {
       updateUser, 
       loginUser, 
       updatePassword
+
     }

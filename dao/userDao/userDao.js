@@ -12,7 +12,8 @@ const findUserByLogin = async (login) => {
 // find User by token
 const findUserByToken = async (token) => {
     let api_token = token;
-    return await User.findOne({ api_token });
+    console.log("Token DAO", api_token)
+    return await User.findOne({ api_token }).populate("permissions");
   };
 // get all Users
 const getAllUsers = async () => {
@@ -34,9 +35,9 @@ const deleteUser = async (id) => {
     return await User.findByIdAndDelete(id);
 };
 
-const getUserById = async (id) => {
-    return await User.findById(id);
-}
+const getUserById = async (_id) => {
+  return await User.findById(_id).populate('permissions').exec();
+};
 
 const getUserByEmail = async (email) => {
     return await User.findOne({ email });
